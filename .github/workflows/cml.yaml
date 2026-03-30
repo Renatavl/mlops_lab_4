@@ -64,18 +64,24 @@ jobs:
         env:
           REPO_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          echo "## Model Metrics" > report.md
-          echo '```json' >> report.md
-          cat metrics.json >> report.md
-          echo '```' >> report.md
-          echo "" >> report.md
+          {
+            echo "## Model Metrics"
+            echo
+            echo '```json'
+            cat metrics.json
+            echo
+            echo '```'
+            echo
 
-          echo "## Baseline Comparison" >> report.md
-          cat baseline_table.md >> report.md
-          echo "" >> report.md
+            echo "## Baseline Comparison"
+            echo
+            cat baseline_table.md
+            echo
 
-          echo "## Confusion Matrix" >> report.md
-          cml publish confusion_matrix.png --md >> report.md
+            echo "## Confusion Matrix"
+            echo
+            echo "![Confusion Matrix](./confusion_matrix.png)"
+          } > report.md
 
           cml comment create report.md
 
