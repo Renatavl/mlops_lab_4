@@ -1,0 +1,74 @@
+stages:
+  prepare:
+    cmd: python src/prepare.py
+    deps:
+      - data/raw/weatherAUS.csv
+      - src/prepare.py
+      - src/common.py
+      - config/config.yaml
+      - config/model/random_forest.yaml
+      - config/model/logistic_regression.yaml
+      - config/hpo/tpe.yaml
+      - config/hpo/random.yaml
+      - config/hpo/grid.yaml
+    outs:
+      - data/processed/processed_data.pickle
+      - data/processed/metadata.json
+
+  train:
+    cmd: python src/train.py
+    deps:
+      - data/processed/processed_data.pickle
+      - src/train.py
+      - src/common.py
+      - config/config.yaml
+      - config/model/random_forest.yaml
+      - config/model/logistic_regression.yaml
+    outs:
+      - model.pkl
+      - metrics.json
+      - confusion_matrix.png
+
+  optimize_tpe:
+    cmd: python src/optimize.py hpo=tpe model=random_forest study_name=random_forest_tpe
+    deps:
+      - data/processed/processed_data.pickle
+      - data/processed/metadata.json
+      - src/optimize.py
+      - src/common.py
+      - config/config.yaml
+      - config/model/random_forest.yaml
+      - config/hpo/tpe.yaml
+    outs:
+      - models/random_forest_tpe_best_model.pkl
+      - reports/random_forest_tpe_best_params.json
+      - reports/random_forest_tpe_summary.json
+      - reports/random_forest_tpe_trial_history.csv
+      - reports/random_forest_tpe_final_metrics.json
+
+  optimize_random:
+    cmd: python src/optimize.py hpo=random model=random_forest study_name=random_forest_random
+    deps:
+      - data/processed/processed_data.pickle
+      - data/processed/metadata.json
+      - src/optimize.py
+      - src/common.py
+      - config/config.yaml
+      - config/model/random_forest.yaml
+      - config/hpo/random.yaml
+    outs:
+      - models/random_forest_random_best_model.pkl
+      - reports/random_forest_random_best_params.json
+      - reports/random_forest_random_summary.json
+      - reports/random_forest_random_trial_history.csv
+      - reports/random_forest_random_final_metrics.json
+
+  compare:
+    cmd: python src/compare_samplers.py --inputs reports/random_forest_tpe_summary.json reports/random_forest_random_summary.json --output-json reports/sampler_comparison.json --output-md reports/sampler_comparison.md
+    deps:
+      - src/compare_samplers.py
+      - reports/random_forest_tpe_summary.json
+      - reports/random_forest_random_summary.json
+    outs:
+      - reports/sampler_comparison.json
+      - reports/sampler_comparison.md

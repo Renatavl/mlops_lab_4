@@ -1,0 +1,7 @@
+{
+  "accuracy_test": 0.0,
+  "f1_test": 0.0,
+  "precision_test": 0.0,
+  "recall_test": 0.0,
+  "roc_auc_test": 0.0
+}

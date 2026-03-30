@@ -1,0 +1,5 @@
+type: logistic_regression
+default_params:
+  C: 1.0
+  solver: liblinear
+  penalty: l2

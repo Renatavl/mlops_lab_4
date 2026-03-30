@@ -1,0 +1,87 @@
+name: Model CI (Train, Test, Report)
+
+on:
+  pull_request:
+  push:
+    branches: [main, master]
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  ci:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
+          cache-dependency-path: requirements.txt
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Lint (flake8)
+        run: |
+          flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
+
+      - name: Format check (black)
+        run: |
+          black . --check
+
+      - name: Run pre-train tests
+        run: |
+          pytest -q tests/test_pretrain.py
+
+      - name: Prepare and train model
+        run: |
+          python src/prepare.py
+          python src/train.py
+
+      - name: Run post-train tests (Quality Gate)
+        env:
+          F1_THRESHOLD: "0.70"
+        run: |
+          pytest -q tests/test_posttrain.py
+
+      - name: Build baseline comparison
+        run: |
+          python src/compare_baseline.py > baseline_table.md
+
+      - name: Set up CML
+        if: github.event_name == 'pull_request'
+        uses: iterative/setup-cml@v2
+
+      - name: Create CML report (PR only)
+        if: github.event_name == 'pull_request'
+        env:
+          REPO_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          echo "## Model Metrics" > report.md
+          echo '```json' >> report.md
+          cat metrics.json >> report.md
+          echo '```' >> report.md
+          echo "" >> report.md
+
+          echo "## Baseline Comparison" >> report.md
+          cat baseline_table.md >> report.md
+          echo "" >> report.md
+
+          echo "## Confusion Matrix" >> report.md
+          cml publish confusion_matrix.png --md >> report.md
+
+          cml comment create report.md
+
+      - name: Upload model artifact (main/master only)
+        if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master')
+        uses: actions/upload-artifact@v4
+        with:
+          name: model
+          path: model.pkl

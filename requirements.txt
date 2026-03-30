@@ -1,0 +1,16 @@
+pandas
+numpy
+scikit-learn
+matplotlib
+seaborn
+mlflow
+jupyter
+PyYAML
+dvc
+joblib
+optuna
+hydra-core
+omegaconf
+pytest
+flake8
+black
